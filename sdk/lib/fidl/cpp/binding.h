@@ -240,6 +240,8 @@ class Binding final {
 
   // The |async_dispatcher_t| to which this binding is bound, if any.
   async_dispatcher_t* dispatcher() const { return controller_.reader().dispatcher(); }
+  void Stop() { controller_.reader().Pause(); }
+  void Start() { controller_.reader().Start(); }
 
  private:
   const ImplPtr impl_;

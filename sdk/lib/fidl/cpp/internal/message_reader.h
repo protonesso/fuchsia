@@ -48,6 +48,12 @@ class MessageReader final {
   // Returns the channel to which this |MessageReader| was previously bound, if
   // any.
   zx::channel Unbind();
+  void Pause() {
+      async_cancel_wait(dispatcher_, &wait_);
+  }
+  void Start() {
+    async_begin_wait(dispatcher_, &wait_);
+  }
 
   // Unbinds the channel from this |MessageReader| and clears the error handler.
   void Reset();

@@ -39,7 +39,7 @@ class AudioInputTest : public testing::ThreadingModelFixture,
                                 &context().link_matrix());
     ASSERT_NE(input_, nullptr);
 
-    ring_buffer_mapper_ = remote_driver_->CreateRingBuffer(kRingBufferSizeBytes);
+    ring_buffer_mapper_ = remote_driver_->CreateRingBufferFakeDriver(kRingBufferSizeBytes);
     ASSERT_NE(ring_buffer_mapper_.start(), nullptr);
   }
 
@@ -51,32 +51,17 @@ class AudioInputTest : public testing::ThreadingModelFixture,
 TEST_P(AudioInputTest, RequestHardwareRateInConfigIfSupported) {
   // Publish a format that has a matching sample rate, and also formats with double and half the
   // requested rate.
-  remote_driver_->set_formats({{
-                                   .sample_formats = AUDIO_SAMPLE_FORMAT_16BIT,
-                                   .min_frames_per_second = GetParam(),
-                                   .max_frames_per_second = GetParam(),
-                                   .min_channels = 1,
-                                   .max_channels = 1,
-                                   .flags = ASF_RANGE_FLAG_FPS_CONTINUOUS,
-                               },
-                               {
-                                   .sample_formats = AUDIO_SAMPLE_FORMAT_16BIT,
-                                   .min_frames_per_second = 2 * GetParam(),
-                                   .max_frames_per_second = 2 * GetParam(),
-                                   .min_channels = 1,
-                                   .max_channels = 1,
-                                   .flags = ASF_RANGE_FLAG_FPS_CONTINUOUS,
-                               },
-                               {
-                                   .sample_formats = AUDIO_SAMPLE_FORMAT_16BIT,
-                                   .min_frames_per_second = GetParam() / 2,
-                                   .max_frames_per_second = GetParam() / 2,
-                                   .min_channels = 1,
-                                   .max_channels = 1,
-                                   .flags = ASF_RANGE_FLAG_FPS_CONTINUOUS,
-                               }});
+  audio_fidl::PcmSupportedFormats formats = {};
+  formats.number_of_channels.push_back(1);
+  formats.sample_formats.push_back(audio_fidl::SampleFormat::PCM_SIGNED);
+  formats.bytes_per_sample.push_back(2);
+  formats.valid_bits_per_sample.push_back(16);
+  formats.frame_rates.push_back(GetParam());
+  formats.frame_rates.push_back(2 * GetParam());
+  formats.frame_rates.push_back(GetParam() / 2);
+  remote_driver_->set_formats(std::move(formats));
 
-  remote_driver_->Start();
+  remote_driver_->StartFakeDriver();
   threading_model().FidlDomain().ScheduleTask(input_->Startup());
   RunLoopUntilIdle();
 
@@ -87,16 +72,15 @@ TEST_P(AudioInputTest, RequestHardwareRateInConfigIfSupported) {
 
 TEST_P(AudioInputTest, FallBackToAlternativeRateIfPreferredRateIsNotSupported) {
   const uint32_t kSupportedRate = GetParam() * 2;
-  remote_driver_->set_formats({{
-      .sample_formats = AUDIO_SAMPLE_FORMAT_16BIT,
-      .min_frames_per_second = kSupportedRate,
-      .max_frames_per_second = kSupportedRate,
-      .min_channels = 1,
-      .max_channels = 1,
-      .flags = ASF_RANGE_FLAG_FPS_CONTINUOUS,
-  }});
+  audio_fidl::PcmSupportedFormats formats = {};
+  formats.number_of_channels.push_back(1);
+  formats.sample_formats.push_back(audio_fidl::SampleFormat::PCM_SIGNED);
+  formats.bytes_per_sample.push_back(2);
+  formats.valid_bits_per_sample.push_back(16);
+  formats.frame_rates.push_back(kSupportedRate);
+  remote_driver_->set_formats(std::move(formats));
 
-  remote_driver_->Start();
+  remote_driver_->StartFakeDriver();
   threading_model().FidlDomain().ScheduleTask(input_->Startup());
   RunLoopUntilIdle();
 

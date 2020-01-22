@@ -5,6 +5,7 @@
 #ifndef SRC_MEDIA_AUDIO_AUDIO_CORE_AUDIO_DRIVER_H_
 #define SRC_MEDIA_AUDIO_AUDIO_CORE_AUDIO_DRIVER_H_
 
+#include <fuchsia/hardware/audio/cpp/fidl.h>
 #include <fuchsia/media/cpp/fidl.h>
 #include <lib/async/cpp/task.h>
 #include <lib/async/cpp/wait.h>
@@ -22,11 +23,13 @@
 
 namespace media::audio {
 
+namespace audio_fidl = ::fuchsia::hardware::audio;
+
 class AudioOutput;
 
+// This struct is a copyable equivalent to the FIDL data structures
+// (although clonable, not-copyable)
 struct HwGainState {
-  // TODO(johngro): when driver interfaces move to FIDL, just change this to match the fidl
-  // structure returned from a GetGain request by the driver.
   bool cur_mute;
   bool cur_agc;
   float cur_gain;
@@ -84,7 +87,7 @@ class AudioDriver {
   // Methods which need to be called from the owner's execution domain.  If there was a good way to
   // use the static lock analysis to ensure this, I would do so, but unfortunately the compiler is
   // unable to figure out that the owner calling these methods is always the same as owner_.
-  const std::vector<audio_stream_format_range_t>& format_ranges() const { return format_ranges_; }
+  const std::vector<audio_fidl::PcmSupportedFormats>& formats() const { return formats_; }
   State state() const { return state_; }
   zx::duration external_delay() const { return external_delay_; }
   uint32_t fifo_depth_frames() const { return fifo_depth_frames_; }
@@ -116,10 +119,9 @@ class AudioDriver {
   static constexpr uint32_t kDriverInfoHasProdStr = (1u << 2);
   static constexpr uint32_t kDriverInfoHasGainState = (1u << 3);
   static constexpr uint32_t kDriverInfoHasFormats = (1u << 4);
-  static constexpr uint32_t kDriverInfoHasClockDomain = (1u << 5);
   static constexpr uint32_t kDriverInfoHasAll = kDriverInfoHasUniqueId | kDriverInfoHasMfrStr |
                                                 kDriverInfoHasProdStr | kDriverInfoHasGainState |
-                                                kDriverInfoHasFormats | kDriverInfoHasClockDomain;
+                                                kDriverInfoHasFormats;
 
   // Counter of received position notifications since START.
   uint32_t position_notification_count_ = 0;
@@ -137,8 +139,6 @@ class AudioDriver {
   zx_status_t ProcessGetStringResponse(audio_stream_cmd_get_string_resp_t& resp)
       FXL_EXCLUSIVE_LOCKS_REQUIRED(owner_->mix_domain().token());
   zx_status_t ProcessGetGainResponse(audio_stream_cmd_get_gain_resp_t& resp)
-      FXL_EXCLUSIVE_LOCKS_REQUIRED(owner_->mix_domain().token());
-  zx_status_t ProcessGetFormatsResponse(const audio_stream_cmd_get_formats_resp_t& resp)
       FXL_EXCLUSIVE_LOCKS_REQUIRED(owner_->mix_domain().token());
   zx_status_t ProcessSetFormatResponse(const audio_stream_cmd_set_format_resp_t& resp,
                                        zx::channel rb_channel)
@@ -199,9 +199,6 @@ class AudioDriver {
   };
 
   TimelineFunction clock_mono_to_ring_pos_bytes() const FXL_NO_THREAD_SAFETY_ANALYSIS;
-  void StreamChannelSignalled(async_dispatcher_t* dispatcher, async::WaitBase* wait,
-                              zx_status_t status, const zx_packet_signal_t* signal)
-      FXL_EXCLUSIVE_LOCKS_REQUIRED(owner_->mix_domain().token());
   void RingBufferChannelSignalled(async_dispatcher_t* dispatcher, async::WaitBase* wait,
                                   zx_status_t status, const zx_packet_signal_t* signal)
       FXL_EXCLUSIVE_LOCKS_REQUIRED(owner_->mix_domain().token());
@@ -212,8 +209,6 @@ class AudioDriver {
   DriverTimeoutHandler timeout_handler_;
 
   State state_ = State::Uninitialized;
-  zx::channel stream_channel_;
-  zx::channel ring_buffer_channel_;
 
   async::Wait stream_channel_wait_ FXL_GUARDED_BY(owner_->mix_domain().token());
   async::Wait ring_buffer_channel_wait_ FXL_GUARDED_BY(owner_->mix_domain().token());
@@ -228,13 +223,14 @@ class AudioDriver {
   std::string manufacturer_name_;
   std::string product_name_;
   HwGainState hw_gain_state_;
-  std::vector<audio_stream_format_range_t> format_ranges_;
+  std::vector<audio_fidl::PcmSupportedFormats> formats_;
 
   int32_t clock_domain_;
 
   // Configuration state.
   zx::duration external_delay_;
   zx::duration min_ring_buffer_duration_;
+  uint32_t fifo_depth_;
   uint32_t fifo_depth_frames_;
   zx::duration fifo_depth_duration_;
   zx::time configuration_deadline_ = zx::time::infinite();
@@ -259,6 +255,8 @@ class AudioDriver {
   zx::time plug_time_ FXL_GUARDED_BY(plugged_lock_);
 
   zx::time driver_last_timeout_ = zx::time::infinite();
+  fidl::InterfacePtr<audio_fidl::StreamConfig> stream_config_intf_;
+  fidl::InterfacePtr<audio_fidl::RingBuffer> ring_buffer_intf_;
 };
 
 }  // namespace media::audio

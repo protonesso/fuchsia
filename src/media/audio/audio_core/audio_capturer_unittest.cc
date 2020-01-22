@@ -96,22 +96,22 @@ TEST_F(AudioCapturerTest, RegistersWithRouteGraphIfHasUsageStreamTypeAndBuffers)
   auto fake_driver =
       testing::FakeAudioDriver(std::move(c1), threading_model().FidlDomain().dispatcher());
 
-  auto vmo = fake_driver.CreateRingBuffer(PAGE_SIZE);
+  auto vmo = fake_driver.CreateRingBufferFakeDriver(PAGE_SIZE);
 
   input->driver()->Init(std::move(c2));
-  fake_driver.Start();
+  fake_driver.StartFakeDriver();
   input->driver()->GetDriverInfo();
   RunLoopUntilIdle();
 
   input->driver()->Start();
-  fake_driver.set_formats({audio_stream_format_range_t{
-      .sample_formats = AUDIO_SAMPLE_FORMAT_32BIT_FLOAT,
-      .min_frames_per_second = 0,
-      .max_frames_per_second = 96000,
-      .min_channels = 1,
-      .max_channels = 100,
-      .flags = 0,
-  }});
+
+  audio_fidl::PcmSupportedFormats formats = {};
+  formats.number_of_channels.push_back(1);
+  formats.sample_formats.push_back(audio_fidl::SampleFormat::PCM_SIGNED);
+  formats.bytes_per_sample.push_back(2);
+  formats.valid_bits_per_sample.push_back(16);
+  formats.frame_rates.push_back(48'000);
+  fake_driver.set_formats(std::move(formats));
   context().route_graph().AddDevice(input.get());
   RunLoopUntilIdle();
 

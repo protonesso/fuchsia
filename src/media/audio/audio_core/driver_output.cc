@@ -330,7 +330,7 @@ void DriverOutput::OnDriverInfoFetched() {
   zx::duration min_rb_duration =
       kDefaultHighWaterNsec + kDefaultMaxRetentionNsec + kDefaultRetentionGapNsec;
 
-  res = SelectBestFormat(driver()->format_ranges(), &pref_fps, &pref_chan, &pref_fmt);
+  res = SelectBestFormat(driver()->formats(), &pref_fps, &pref_chan, &pref_fmt);
 
   if (res != ZX_OK) {
     FX_LOGS(ERROR) << "Output: cannot match a driver format to this request: " << pref_fps

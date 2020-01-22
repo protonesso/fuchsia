@@ -73,7 +73,7 @@ void AudioInput::OnDriverInfoFetched() {
   uint32_t pref_chan = 1;
   fuchsia::media::AudioSampleFormat pref_fmt = fuchsia::media::AudioSampleFormat::SIGNED_16;
 
-  zx_status_t res = SelectBestFormat(driver()->format_ranges(), &pref_fps, &pref_chan, &pref_fmt);
+  zx_status_t res = SelectBestFormat(driver()->formats(), &pref_fps, &pref_chan, &pref_fmt);
   if (res != ZX_OK) {
     FX_LOGS(ERROR) << "Audio input failed to find any compatible driver formats.  Req was "
                    << pref_fps << " Hz " << pref_chan << " channel(s) sample format(0x" << std::hex

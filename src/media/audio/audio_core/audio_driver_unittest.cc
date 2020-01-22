@@ -32,35 +32,32 @@ class AudioDriverTest : public testing::ThreadingModelFixture {
 };
 
 TEST_F(AudioDriverTest, GetDriverInfo) {
-  remote_driver_->Start();
+  remote_driver_->StartFakeDriver();
 
   driver_.GetDriverInfo();
   RunLoopUntilIdle();
-  EXPECT_TRUE(device_->driver_info_fetched());
+
   EXPECT_EQ(driver_.state(), AudioDriver::State::Unconfigured);
 }
 
 TEST_F(AudioDriverTest, GetDriverInfoTimeout) {
-  remote_driver_->Stop();
+  remote_driver_->StopFakeDriver();
 
   driver_.GetDriverInfo();
 
   // DriverInfo still pending.
   RunLoopFor(AudioDriver::kDefaultShortCmdTimeout - zx::nsec(1));
-  EXPECT_FALSE(device_->driver_info_fetched());
   EXPECT_EQ(driver_.state(), AudioDriver::State::MissingDriverInfo);
 
   // Now time out (run 10ms past the deadline).
   RunLoopFor(zx::msec(10) + zx::nsec(1));
-  EXPECT_FALSE(device_->driver_info_fetched());
   EXPECT_EQ(driver_.state(), AudioDriver::State::MissingDriverInfo);
   EXPECT_EQ(last_late_command_, zx::duration::infinite());
 
   // Now run the driver to process the response.
-  remote_driver_->Start();
+  remote_driver_->StartFakeDriver();
   RunLoopUntilIdle();
   EXPECT_EQ(last_late_command_, zx::msec(10));
-  EXPECT_TRUE(device_->driver_info_fetched());
   EXPECT_EQ(driver_.state(), AudioDriver::State::Unconfigured);
 }
 

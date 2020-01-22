@@ -105,6 +105,7 @@ executable("audio_device_service_tests_bin") {
   deps = [
     "//garnet/public/lib/fostr",
     "//garnet/public/lib/fostr/fidl/fuchsia.media",
+    "//sdk/fidl/fuchsia.hardware.audio",
     "//sdk/fidl/fuchsia.media",
     "//sdk/fidl/fuchsia.virtualaudio",
     "//src/lib/fxl/test:gtest_main_with_syslog",
@@ -170,7 +171,7 @@ test_package("audio_pipeline_tests") {
       # This (effectively real-time) test must be run on a true hardware-based target.
       # By specifying 'extended_hardware_envs' instead of 'hardware_envs', we allow these tests to
       # run on the VIM2 platform, where our audio driver for the HDMI-based audio output does not
-      # yet generate position notifications.
+            # yet generate position notifications.
       environments = extended_hardware_envs
     },
   ]

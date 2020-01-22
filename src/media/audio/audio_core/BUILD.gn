@@ -158,6 +158,7 @@ source_set("audio_core_lib") {
   ]
 
   public_deps = [
+    "//sdk/fidl/fuchsia.hardware.audio",
     "//sdk/fidl/fuchsia.media",
     "//sdk/lib/sys/inspect/cpp",
     "//src/lib/syslog/cpp",
@@ -172,7 +173,6 @@ source_set("audio_core_lib") {
   deps = [
     ":json_schema_headers",
     ":media_metrics_registry",
-    "//sdk/fidl/fuchsia.hardware.audio",
     "//sdk/fidl/fuchsia.media",
     "//sdk/lib/media/audio/cpp",
     "//sdk/lib/media/cpp:no_converters",

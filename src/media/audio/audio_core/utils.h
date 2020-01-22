@@ -5,6 +5,7 @@
 #ifndef SRC_MEDIA_AUDIO_AUDIO_CORE_UTILS_H_
 #define SRC_MEDIA_AUDIO_AUDIO_CORE_UTILS_H_
 
+#include <fuchsia/hardware/audio/cpp/fidl.h>
 #include <fuchsia/media/cpp/fidl.h>
 #include <lib/fit/function.h>
 #include <lib/fzl/vmo-mapper.h>
@@ -22,6 +23,8 @@
 #include "src/media/audio/audio_core/mixer/constants.h"
 
 namespace media::audio {
+
+namespace audio_fidl = ::fuchsia::hardware::audio;
 
 class GenerationId {
  public:
@@ -59,7 +62,7 @@ class AtomicGenerationId {
 // the "best" form and update the in/out parameters, then return ZX_OK.  If no
 // formats exist, or all format ranges get completely rejected, return an error
 // and leave the in/out params as they were.
-zx_status_t SelectBestFormat(const std::vector<audio_stream_format_range_t>& fmts,
+zx_status_t SelectBestFormat(const std::vector<audio_fidl::PcmSupportedFormats>& fmts,
                              uint32_t* frames_per_second_inout, uint32_t* channels_inout,
                              fuchsia::media::AudioSampleFormat* sample_format_inout);
 

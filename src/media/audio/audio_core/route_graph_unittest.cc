@@ -115,7 +115,7 @@ class RouteGraphTest : public testing::ThreadingModelFixture {
     fake_driver->set_stream_unique_id(device_id);
     ZX_ASSERT(ZX_OK == output->driver()->Init(std::move(c2)));
 
-    fake_driver->Start();
+    fake_driver->StartFakeDriver();
     output->driver()->GetDriverInfo();
     RunLoopUntilIdle();
 

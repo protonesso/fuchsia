@@ -180,17 +180,16 @@ static bool interrupt_creation_test() {
     KernelHandle<InterruptDispatcher> interrupt;
     ASSERT_EQ(
         ZX_ERR_INVALID_ARGS,
-        MsiDispatcher::Create(alloc, msi_id, vmo_noncontig, reg_offset, MSI_FLAG_HAS_PVM, &rights,
+        MsiDispatcher::Create(alloc, msi_id, vmo_noncontig, reg_offset, 0 /* options */, &rights,
                               &interrupt, register_fn, true /* virtual interrupt */));
     // This should fail because the VMO has not had a cache policy set.
     ASSERT_EQ(ZX_ERR_INVALID_ARGS,
-              MsiDispatcher::Create(alloc, msi_id, vmo, reg_offset, MSI_FLAG_HAS_PVM, &rights,
+              MsiDispatcher::Create(alloc, msi_id, vmo, reg_offset, 0 /* options */, &rights,
                                     &interrupt, register_fn, true /* virtual interrupt */));
     ASSERT_EQ(ZX_OK, vmo->SetMappingCachePolicy(ZX_CACHE_POLICY_UNCACHED_DEVICE));
     // Now Create() should succeed.
-    ASSERT_EQ(ZX_OK,
-              MsiDispatcher::Create(alloc, msi_id, vmo, reg_offset, MSI_FLAG_HAS_PVM, &rights,
-                                    &interrupt, register_fn, true /* virtual interrupt */));
+    ASSERT_EQ(ZX_OK, MsiDispatcher::Create(alloc, msi_id, vmo, reg_offset, 0 /* options */, &rights,
+                                           &interrupt, register_fn, true /* virtual interrupt */));
     // This mapping must be created after the MsiDispatcher because the VMO's
     // cache policy is set within Create().
     fbl::RefPtr<VmMapping> mapping;

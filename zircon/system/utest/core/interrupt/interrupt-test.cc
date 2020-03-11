@@ -2,14 +2,19 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <lib/zx/bti.h>
 #include <lib/zx/guest.h>
 #include <lib/zx/interrupt.h>
+#include <lib/zx/msi.h>
 #include <lib/zx/port.h>
 #include <lib/zx/process.h>
 #include <lib/zx/thread.h>
 #include <lib/zx/vcpu.h>
 
 #include <zxtest/zxtest.h>
+
+#include "zircon/syscalls.h"
+#include "zircon/syscalls/iommu.h"
 
 namespace {
 
@@ -23,16 +28,24 @@ constexpr uint32_t kUnboundInterruptNumber = 29;
 class RootResourceFixture : public zxtest::Test {
  public:
   // Please do not use get_root_resource() in new code. See ZX-1467.
-  void SetUp() override { root_resource_ = zx::unowned_resource(get_root_resource()); }
+  void SetUp() override {
+    zx_iommu_desc_dummy_t desc = {};
+    root_resource_ = zx::unowned_resource(get_root_resource());
+    ASSERT_OK(
+        zx::iommu::create(*root_resource_, ZX_IOMMU_TYPE_DUMMY, &desc, sizeof(desc), &iommu_));
+    ASSERT_OK(zx::bti::create(iommu_, 0, 0xdeadbeef, &bti_));
+  }
 
  protected:
   zx::unowned_resource root_resource_;
+  zx::iommu iommu_;
+  zx::bti bti_;
 };
 
 // Use an alias so we use a different test case name.
 using InterruptTest = RootResourceFixture;
 
-bool WaitThread(const zx::thread& thread, uint32_t reason) {
+bool WaitThread(const zx::thread &thread, uint32_t reason) {
   while (true) {
     zx_info_thread_t info;
     EXPECT_OK(thread.get_info(ZX_INFO_THREAD, &info, sizeof(info), nullptr, nullptr));
@@ -360,6 +373,28 @@ TEST_F(InterruptTest, NullOutputTimestamp) {
   ASSERT_OK(interrupt.trigger(0, kSignaledTimeStamp1));
 
   ASSERT_OK(interrupt.wait(nullptr));
+}
+
+// Differentiate the two test categories while still allowing the use of the helper
+// functions in this file.
+using MsiTest = InterruptTest;
+TEST_F(MsiTest, AllocationAndCreation) {
+  zx::bti bti;
+  zx::msi msi;
+  zx::vmo vmo;
+  zx::interrupt interrupt;
+  // uint8_t msi_cap_id = 0x5;
+
+  // This operation is supposed to use a physical MMIO region but can be emulated
+  // with a contiguous uncached VMO that has pages committed to it create a physical VMO, but can be
+  // emulated vi
+  const size_t vmo_size = 4096;
+  ASSERT_OK(zx::vmo::create_contiguous(bti_, vmo_size, 0, &vmo));
+  ASSERT_OK(vmo.op_range(ZX_VMO_OP_COMMIT, 0, vmo_size, nullptr, 0));
+  ASSERT_OK(vmo.set_cache_policy(ZX_CACHE_POLICY_UNCACHED_DEVICE));
+  // ASSERT_OK(vmo.write(static_cast<void *>(&msi_cap_id), 0, sizeof(msi_cap_id)));
+  ASSERT_OK(zx::msi::allocate(*root_resource_, 5, &msi));
+  ASSERT_OK(zx::msi::create(msi, 0, vmo, vmo_size, 0, &interrupt));
 }
 
 }  // namespace

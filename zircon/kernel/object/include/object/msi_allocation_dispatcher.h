@@ -35,6 +35,7 @@ class MsiAllocationDispatcher final
   }
 
   zx_obj_type_t get_type() const final { return ZX_OBJ_TYPE_MSI_ALLOCATION; }
+  void GetInfo(zx_info_msi_t* info) { msi_alloc_->GetInfo(info); }
   fbl::RefPtr<MsiAllocation>& msi_allocation() { return msi_alloc_; }
 
  private:

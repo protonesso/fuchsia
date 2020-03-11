@@ -3,8 +3,8 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file or at
 // https://opensource.org/licenses/MIT
-#ifndef ZIRCON_KERNEL_OBJECT_INCLUDE_OBJECT_MSI_INTERRUPT_DISPATCHER_H_
-#define ZIRCON_KERNEL_OBJECT_INCLUDE_OBJECT_MSI_INTERRUPT_DISPATCHER_H_
+#ifndef ZIRCON_KERNEL_OBJECT_INCLUDE_OBJECT_MSI_DISPATCHER_H_
+#define ZIRCON_KERNEL_OBJECT_INCLUDE_OBJECT_MSI_DISPATCHER_H_
 
 #include <sys/types.h>
 
@@ -133,4 +133,4 @@ class MsiDispatcherImpl : public MsiDispatcher {
   volatile mutable uint32_t* mask_bits_reg_ TA_GUARDED(allocation()->lock()) = nullptr;
 };
 
-#endif  // ZIRCON_KERNEL_OBJECT_INCLUDE_OBJECT_MSI_INTERRUPT_DISPATCHER_H_
+#endif  // ZIRCON_KERNEL_OBJECT_INCLUDE_OBJECT_MSI_DISPATCHER_H_

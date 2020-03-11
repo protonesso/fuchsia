@@ -4,6 +4,8 @@
 // license that can be found in the LICENSE file or at
 // https://opensource.org/licenses/MIT
 
+#include "zircon/syscalls/object.h"
+
 #include <err.h>
 #include <inttypes.h>
 #include <lib/heap.h>
@@ -22,6 +24,7 @@
 #include <object/exception_dispatcher.h>
 #include <object/handle.h>
 #include <object/job_dispatcher.h>
+#include <object/msi_allocation_dispatcher.h>
 #include <object/process_dispatcher.h>
 #include <object/resource.h>
 #include <object/resource_dispatcher.h>
@@ -675,6 +678,18 @@ zx_status_t sys_object_get_info(zx_handle_t handle, uint32_t topic, user_out_ptr
           return status;
       }
       return ZX_OK;
+    }
+    case ZX_INFO_MSI: {
+      fbl::RefPtr<MsiAllocationDispatcher> allocation;
+      zx_status_t status = up->GetDispatcherWithRights(handle, ZX_RIGHT_INSPECT, &allocation);
+      if (status != ZX_OK) {
+        return status;
+      }
+
+      zx_info_msi_t info = {};
+      allocation->GetInfo(&info);
+
+      return single_record_result(_buffer, buffer_size, _actual, _avail, info);
     }
 
     default:
